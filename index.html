@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>BetTrack IL | ניהול ומעקב הימורי כדורגל</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Heebo & Inter for crisp Hebrew + Numbers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Chart.js for Profit Progression Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Heebo', 'sans-serif'],
+                        num: ['Inter', 'Heebo', 'sans-serif'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#152033',
+                            900: '#0f172a',
+                            950: '#090e1a',
+                        },
+                        emerald: {
+                            450: '#10b981',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #090e1a;
+            color: #f1f5f9;
+            font-family: 'Heebo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .num-font {
+            font-family: 'Inter', 'Heebo', sans-serif;
+            font-variant-numeric: tabular-nums;
+        }
+        /* Custom subtle scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200">
+
+    <!-- Top Navigation / Header -->
+    <header class="sticky top-0 z-30 glass-card border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
+                    <i class="fa-solid fa-futbol text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                        BetTrack <span class="text-emerald-400">Pro</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">מעקב הימורי כדורגל, ניהול בנק וניתוח סטטיסטיקות</p>
+                </div>
+            </div>
+
+            <!-- Action Toolbar -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="loadSampleData()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium border border-slate-700 transition flex items-center gap-1.5" title="טען נתוני דוגמה להתנסות">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+                    <span>נתוני דוגמה</span>
+                </button>
+                
+                <div class="relative inline-block">
+                    <button onclick="toggleBackupMenu()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium border border-slate-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-database text-sky-400"></i>
+                        <span>גיבוי / ייצוא</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-70"></i>
+                    </button>
+                    <!-- Dropdown Menu -->
+                    <div id="backupMenu" class="hidden absolute left-0 mt-2 w-48 rounded-xl bg-slate-850 border border-slate-700 shadow-2xl py-1.5 z-50">
+                        <button onclick="exportCSV()" class="w-full text-right px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2.5">
+                            <i class="fa-solid fa-file-csv text-emerald-400 w-4"></i> ייצוא לאקסל (CSV)
+                        </button>
+                        <button onclick="exportJSON()" class="w-full text-right px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2.5">
+                            <i class="fa-solid fa-file-code text-sky-400 w-4"></i> גיבוי מלא (JSON)
+                        </button>
+                        <label class="w-full text-right px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2.5 cursor-pointer">
+                            <i class="fa-solid fa-upload text-amber-400 w-4"></i> שחזור מגיבוי (JSON)
+                            <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importJSON(event)">
+                        </label>
+                        <div class="border-t border-slate-700/80 my-1"></div>
+                        <button onclick="openConfirmModal('clearAll')" class="w-full text-right px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-950/40 flex items-center gap-2.5">
+                            <i class="fa-solid fa-trash-can w-4"></i> מחיקת כל הנתונים
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <!-- KPI Summary Cards -->
+        <section aria-label="סטטיסטיקות מרכזיות" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            <!-- Net Profit -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+                    <span>רווח / הפסד נקי</span>
+                    <i class="fa-solid fa-wallet text-slate-500"></i>
+                </div>
+                <div id="statNetProfit" class="text-xl sm:text-2xl font-bold num-font text-white" dir="ltr">₪0.00</div>
+                <div id="statTotalStaked" class="text-[11px] text-slate-400 mt-1">הושקע: ₪0</div>
+            </div>
+
+            <!-- ROI -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+                    <span>תשואה (ROI)</span>
+                    <i class="fa-solid fa-chart-line text-slate-500"></i>
+                </div>
+                <div id="statRoi" class="text-xl sm:text-2xl font-bold num-font text-white" dir="ltr">0.0%</div>
+                <div class="text-[11px] text-slate-400 mt-1">רווח ביחס להשקעה</div>
+            </div>
+
+            <!-- Win Rate -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+                    <span>אחוז פגיעה</span>
+                    <i class="fa-solid fa-bullseye text-slate-500"></i>
+                </div>
+                <div id="statWinRate" class="text-xl sm:text-2xl font-bold num-font text-emerald-400">0.0%</div>
+                <div id="statRecord" class="text-[11px] text-slate-400 mt-1">0 זכיות / 0 הפסדים</div>
+            </div>
+
+            <!-- Total Settled Bets -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+                    <span>הימורים סגורים</span>
+                    <i class="fa-solid fa-list-check text-slate-500"></i>
+                </div>
+                <div id="statTotalBets" class="text-xl sm:text-2xl font-bold num-font text-white">0</div>
+                <div id="statOpenCount" class="text-[11px] text-amber-400/90 mt-1">0 פתוחים כעת</div>
+            </div>
+
+            <!-- Average Odds -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+                    <span>ממוצע יחסים</span>
+                    <i class="fa-solid fa-percent text-slate-500"></i>
+                </div>
+                <div id="statAvgOdds" class="text-xl sm:text-2xl font-bold num-font text-sky-400">0.00</div>
+                <div class="text-[11px] text-slate-400 mt-1">יחס ממוצע למשחק</div>
+            </div>
+
+            <!-- Current Streak -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
+                    <span>רצף נוכחי</span>
+                    <i class="fa-solid fa-fire text-slate-500"></i>
+                </div>
+                <div id="statStreak" class="text-lg sm:text-xl font-bold text-slate-200">-</div>
+                <div id="statBestStreak" class="text-[11px] text-slate-400 mt-1">שיא זכיות: 0</div>
+            </div>
+        </section>
+
+        <!-- Main Workspace Grid: Left/Right Split on Desktop -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Right Column (4 cols): Add Bet Form -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass-card rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                        <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            הוספת הימור חדש
+                        </h2>
+                        <span class="text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg">סינגל / טור</span>
+                    </div>
+
+                    <form id="addBetForm" onsubmit="handleAddBet(event)" class="space-y-3.5">
+                        <!-- Match / Ticket Name -->
+                        <div>
+                            <label for="betMatch" class="block text-xs font-medium text-slate-300 mb-1">משחק או שם טור <span class="text-rose-400">*</span></label>
+                            <input type="text" id="betMatch" required placeholder="לדוגמה: ארסנל נגד צ'לסי / טור שבת"
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                        </div>
+
+                        <!-- League & Market Grid -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="betLeague" class="block text-xs font-medium text-slate-300 mb-1">ליגה / מפעל</label>
+                                <select id="betLeague"
+                                    class="w-full px-3 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 transition">
+                                    <option value="פרמייר ליג">פרמייר ליג</option>
+                                    <option value="לה ליגה">לה ליגה</option>
+                                    <option value="בונדסליגה">בונדסליגה</option>
+                                    <option value="סרייה א'">סרייה א'</option>
+                                    <option value="ליג 1">ליג 1</option>
+                                    <option value="ליגת האלופות">ליגת האלופות</option>
+                                    <option value="ליגת העל">ליגת העל</option>
+                                    <option value="נבחרות / טורניר">נבחרות / טורניר</option>
+                                    <option value="אחר">אחר</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="betMarket" class="block text-xs font-medium text-slate-300 mb-1">סוג שוק</label>
+                                <select id="betMarket"
+                                    class="w-full px-3 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-emerald-500 transition">
+                                    <option value="1X2 / תוצאה">1X2 / תוצאה</option>
+                                    <option value="שערים Over/Under">שערים Over/Under</option>
+                                    <option value="קרנות">קרנות</option>
+                                    <option value="הנדיקאפ אסייתי">הנדיקאפ אסייתי</option>
+                                    <option value="טור משולב / Multi">טור משולב / Multi</option>
+                                    <option value="אחר">אחר</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Selection / Pick -->
+                        <div>
+                            <label for="betPick" class="block text-xs font-medium text-slate-300 mb-1">הבחירה שלך (Pick) <span class="text-rose-400">*</span></label>
+                            <input type="text" id="betPick" required placeholder="לדוגמה: מעל 9.5 קרנות / ניצחון בית (1)"
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                        </div>
+
+                        <!-- Odds & Stake -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="betOdds" class="block text-xs font-medium text-slate-300 mb-1">יחס (Odds) <span class="text-rose-400">*</span></label>
+                                <input type="number" id="betOdds" step="0.01" min="1.01" required placeholder="1.85" oninput="updateLivePayout()"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700/80 text-white placeholder-slate-500 text-sm num-font focus:outline-none focus:border-emerald-500 transition">
+                            </div>
+
+                            <div>
+                                <label for="betStake" class="block text-xs font-medium text-slate-300 mb-1">סכום השקעה (₪) <span class="text-rose-400">*</span></label>
+                                <input type="number" id="betStake" step="1" min="1" required placeholder="100" oninput="updateLivePayout()"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/90 border border-slate-700/80 text-white placeholder-slate-500 text-sm num-font focus:outline-none focus:border-emerald-500 transition">
+                            </div>
+                        </div>
+
+                        <!-- Live Payout Preview Box -->
+                        <div class="rounded-xl bg-slate-950/80 border border-slate-800 p-3 flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-slate-400 block">החזר צפוי (כולל קרן):</span>
+                                <span id="livePotentialProfit" class="text-[11px] text-emerald-400/80">רווח נקי צפוי: ₪0.00</span>
+                            </div>
+                            <div id="livePayoutDisplay" class="text-lg font-bold num-font text-emerald-400">₪0.00</div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit"
+                            class="w-full py-3 px-4 rounded-xl bg-gradient-to-l from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.99] transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>הוסף הימור לרשימה</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Profit Progression Mini Chart -->
+                <div class="glass-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-area text-emerald-400"></i>
+                            מגמת רווח מצטבר (₪)
+                        </h3>
+                        <span class="text-[11px] text-slate-400">לפי סדר סגירה</span>
+                    </div>
+                    <div class="relative h-48 w-full">
+                        <canvas id="profitChart"></canvas>
+                        <div id="chartEmptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-500 text-xs text-center">
+                            <i class="fa-solid fa-chart-simple text-2xl mb-1.5 opacity-40"></i>
+                            <span>סגור הימורים כדי לראות את גרף הרווחים</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Left Column (8 cols): Bets List & Detailed Breakdowns -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Bets Management Card -->
+                <div class="glass-card rounded-2xl p-5">
+                    <!-- Header & Filter Tabs -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                        <div>
+                            <h2 class="text-base sm:text-lg font-bold text-white">יומן הימורים ומשחקים</h2>
+                            <p class="text-xs text-slate-400">סמן תוצאה בסיום כל משחק לעדכון הסטטיסטיקה בזמן אמת</p>
+                        </div>
+
+                        <!-- Filter Pills -->
+                        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                            <button onclick="setFilter('all')" id="tab-all" class="filter-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition bg-slate-800 text-white">
+                                הכל (<span id="count-all">0</span>)
+                            </button>
+                            <button onclick="setFilter('open')" id="tab-open" class="filter-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white">
+                                פתוחים (<span id="count-open">0</span>)
+                            </button>
+                            <button onclick="setFilter('settled')" id="tab-settled" class="filter-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-white">
+                                סגורים (<span id="count-settled">0</span>)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bets Feed Container -->
+                    <div id="betsListContainer" class="mt-4 space-y-3">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Breakdowns Section: By Market & By League -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Breakdown by Market -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-sky-400"></i>
+                            פילוח ביצועים לפי שוק
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right text-xs">
+                                <thead>
+                                    <tr class="text-slate-400 border-b border-slate-800">
+                                        <th class="pb-2 font-medium">שוק</th>
+                                        <th class="pb-2 font-medium text-center">הימורים</th>
+                                        <th class="pb-2 font-medium text-center">פגיעה</th>
+                                        <th class="pb-2 font-medium text-left">רווח/הפסד</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="marketBreakdownBody" class="divide-y divide-slate-800/60">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Breakdown by League -->
+                    <div class="glass-card rounded-2xl p-5">
+                        <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-400"></i>
+                            פילוח ביצועים לפי ליגה
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right text-xs">
+                                <thead>
+                                    <tr class="text-slate-400 border-b border-slate-800">
+                                        <th class="pb-2 font-medium">ליגה</th>
+                                        <th class="pb-2 font-medium text-center">הימורים</th>
+                                        <th class="pb-2 font-medium text-center">פגיעה</th>
+                                        <th class="pb-2 font-medium text-left">רווח/הפסד</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leagueBreakdownBody" class="divide-y divide-slate-800/60">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Custom Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-800 border border-slate-700 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-sm font-medium">
+            <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toastMessage">הפעולה בוצעה בהצלחה</span>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal (No native alert/confirm) -->
+    <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center gap-3 text-rose-400">
+                <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                </div>
+                <h3 id="modalTitle" class="text-base font-bold text-white">אישור מחיקה</h3>
+            </div>
+            <p id="modalDesc" class="text-sm text-slate-300 leading-relaxed">האם אתה בטוח שברצונך לבצע פעולה זו? לא ניתן לשחזר נתונים שנמחקו.</p>
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition">
+                    ביטול
+                </button>
+                <button id="modalConfirmBtn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold transition">
+                    כן, מחק
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        /**
+         * State & Storage Key
+         */
+        const STORAGE_KEY = 'bettrack_il_bets_v1';
+        let bets = [];
+        let currentFilter = 'all'; // 'all' | 'open' | 'settled'
+        let profitChartInstance = null;
+
+        /**
+         * Initialize App on DOM Load
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            renderAll();
+
+            // Close backup dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                const menu = document.getElementById('backupMenu');
+                if (!e.target.closest('#backupMenu') && !e.target.closest('button[onclick="toggleBackupMenu()"]')) {
+                    menu.classList.add('hidden');
+                }
+            });
+        });
+
+        /**
+         * Load & Save from LocalStorage
+         */
+        function loadFromStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                bets = raw ? JSON.parse(raw) : [];
+            } catch (err) {
+                console.error('Failed to parse localStorage:', err);
+                bets = [];
+            }
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+            } catch (err) {
+                showToast('שגיאה בשמירת הנתונים בדפדפן', 'error');
+            }
+        }
+
+        /**
+         * Live Payout Calculator in Add Form
+         */
+        function updateLivePayout() {
+            const odds = parseFloat(document.getElementById('betOdds').value) || 0;
+            const stake = parseFloat(document.getElementById('betStake').value) || 0;
+            const payout = odds * stake;
+            const profit = payout - stake;
+
+            document.getElementById('livePayoutDisplay').textContent = `₪${payout.toFixed(2)}`;
+            document.getElementById('livePotentialProfit').textContent = `רווח נקי צפוי: ₪${profit > 0 ? profit.toFixed(2) : '0.00'}`;
+        }
+
+        /**
+         * Handle New Bet Submission
+         */
+        function handleAddBet(e) {
+            e.preventDefault();
+
+            const match = document.getElementById('betMatch').value.trim();
+            const league = document.getElementById('betLeague').value;
+            const market = document.getElementById('betMarket').value;
+            const pick = document.getElementById('betPick').value.trim();
+            const odds = parseFloat(document.getElementById('betOdds').value);
+            const stake = parseFloat(document.getElementById('betStake').value);
+
+            if (!match || !pick || isNaN(odds) || isNaN(stake) || odds <= 1 || stake <= 0) {
+                showToast('נא למלא את כל שדות החובה בצורה תקינה', 'error');
+                return;
+            }
+
+            const newBet = {
+                id: 'bet_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                match,
+                league,
+                market,
+                pick,
+                odds,
+                stake,
+                status: 'open', // 'open' | 'win' | 'loss' | 'void' | 'half_win' | 'half_loss'
+                createdAt: new Date().toISOString(),
+                settledAt: null
+            };
+
+            bets.unshift(newBet);
+            saveToStorage();
+            renderAll();
+
+            // Reset inputs except league/market for faster consecutive entry
+            document.getElementById('betMatch').value = '';
+            document.getElementById('betPick').value = '';
+            document.getElementById('betOdds').value = '';
+            document.getElementById('betStake').value = '';
+            updateLivePayout();
+
+            showToast('ההימור נוסף בהצלחה!');
+        }
+
+        /**
+         * Update Bet Status (Win / Loss / Void / Half Win / Half Loss / Re-open)
+         */
+        function setBetStatus(id, newStatus) {
+            const bet = bets.find(b => b.id === id);
+            if (!bet) return;
+
+            bet.status = newStatus;
+            bet.settledAt = newStatus === 'open' ? null : new Date().toISOString();
+
+            saveToStorage();
+            renderAll();
+
+            const statusLabels = {
+                win: 'סומן כניצחון!',
+                loss: 'סומן כהפסד',
+                void: 'סומן כהחזרה (Void)',
+                half_win: 'סומן כחצי זכייה',
+                half_loss: 'סומן כחצי הפסד',
+                open: 'ההימור הוחזר למצב פתוח'
+            };
+            showToast(statusLabels[newStatus] || 'הסטטוס עודכן');
+        }
+
+        /**
+         * Calculate Net Profit & Return for a Single Bet
+         * Standard Asian Handicap & Sportsbook Math:
+         * - win: stake * (odds - 1)
+         * - loss: -stake
+         * - void: 0
+         * - half_win: (stake / 2) * (odds - 1)
+         * - half_loss: -(stake / 2)
+         */
+        function calculateBetNetProfit(bet) {
+            switch (bet.status) {
+                case 'win':
+                    return bet.stake * (bet.odds - 1);
+                case 'loss':
+                    return -bet.stake;
+                case 'void':
+                    return 0;
+                case 'half_win':
+                    return (bet.stake / 2) * (bet.odds - 1);
+                case 'half_loss':
+                    return -(bet.stake / 2);
+                default:
+                    return 0;
+            }
+        }
+
+        /**
+         * Filter Tabs Logic
+         */
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(btn => {
+                btn.classList.remove('bg-slate-800', 'text-white');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`tab-${filter}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-slate-800', 'text-white');
+                activeBtn.classList.remove('text-slate-400');
+            }
+            renderBetsList();
+        }
+
+        /**
+         * Master Render Function
+         */
+        function renderAll() {
+            updateFilterCounts();
+            renderBetsList();
+            renderStatistics();
+            renderBreakdowns();
+            renderProfitChart();
+        }
+
+        function updateFilterCounts() {
+            const openCount = bets.filter(b => b.status === 'open').length;
+            const settledCount = bets.filter(b => b.status !== 'open').length;
+
+            document.getElementById('count-all').textContent = bets.length;
+            document.getElementById('count-open').textContent = openCount;
+            document.getElementById('count-settled').textContent = settledCount;
+        }
+
+        /**
+         * Render Bets List
+         */
+        function renderBetsList() {
+            const container = document.getElementById('betsListContainer');
+            let filtered = bets;
+
+            if (currentFilter === 'open') {
+                filtered = bets.filter(b => b.status === 'open');
+            } else if (currentFilter === 'settled') {
+                filtered = bets.filter(b => b.status !== 'open');
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 px-4 rounded-xl border border-dashed border-slate-800 bg-slate-950/40">
+                        <div class="w-12 h-12 rounded-full bg-slate-800/80 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-ticket text-xl"></i>
+                        </div>
+                        <p class="text-sm font-medium text-slate-300">אין הימורים להצגה בלשונית זו</p>
+                        <p class="text-xs text-slate-500 mt-1">הוסף הימור חדש בטופס מימין או טען נתוני דוגמה להתנסות</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(bet => {
+                const dateStr = new Date(bet.createdAt).toLocaleDateString('he-IL', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                });
+                const potentialReturn = (bet.stake * bet.odds).toFixed(2);
+                const netProfit = calculateBetNetProfit(bet);
+
+                // Status Badge & Border Styling
+                let statusBadge = '';
+                let cardBorder = 'border-slate-800/90';
+
+                if (bet.status === 'open') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">פתוח</span>`;
+                    cardBorder = 'border-amber-500/30';
+                } else if (bet.status === 'win') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">ניצחון (+₪${netProfit.toFixed(2)})</span>`;
+                    cardBorder = 'border-emerald-500/30';
+                } else if (bet.status === 'half_win') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">חצי זכייה (+₪${netProfit.toFixed(2)})</span>`;
+                    cardBorder = 'border-emerald-500/25';
+                } else if (bet.status === 'loss') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">הפסד (-₪${Math.abs(netProfit).toFixed(2)})</span>`;
+                    cardBorder = 'border-rose-500/30';
+                } else if (bet.status === 'half_loss') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">חצי הפסד (-₪${Math.abs(netProfit).toFixed(2)})</span>`;
+                    cardBorder = 'border-rose-500/25';
+                } else if (bet.status === 'void') {
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-700/60 text-slate-300 border border-slate-600">החזרה (Void)</span>`;
+                }
+
+                return `
+                <div class="rounded-xl bg-slate-950/80 border ${cardBorder} p-4 transition hover:bg-slate-900/90">
+                    <!-- Top Row: League, Market, Date & Status -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">${escapeHtml(bet.league)}</span>
+                            <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-sky-950/60 text-sky-300 border border-sky-800/40">${escapeHtml(bet.market)}</span>
+                            <span class="text-[11px] text-slate-500 num-font">${dateStr}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${statusBadge}
+                            <button onclick="openConfirmModal('deleteOne', '${bet.id}')" class="text-slate-500 hover:text-rose-400 p-1 rounded-lg transition" title="מחק הימור">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Middle Row: Match, Selection & Financial Numbers -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-1">
+                        <div>
+                            <h4 class="text-base font-bold text-white">${escapeHtml(bet.match)}</h4>
+                            <p class="text-sm text-emerald-400 font-medium mt-0.5">
+                                <i class="fa-solid fa-check-double text-xs ml-1 opacity-75"></i>${escapeHtml(bet.pick)}
+                            </p>
+                        </div>
+
+                        <div class="flex items-center gap-4 bg-slate-900/90 px-3.5 py-2 rounded-xl border border-slate-800/80 self-start sm:self-auto">
+                            <div>
+                                <span class="block text-[10px] text-slate-400">יחס</span>
+                                <span class="text-sm font-bold num-font text-sky-400">${bet.odds.toFixed(2)}</span>
+                            </div>
+                            <div class="h-6 w-px bg-slate-800"></div>
+                            <div>
+                                <span class="block text-[10px] text-slate-400">השקעה</span>
+                                <span class="text-sm font-bold num-font text-white">₪${bet.stake}</span>
+                            </div>
+                            <div class="h-6 w-px bg-slate-800"></div>
+                            <div>
+                                <span class="block text-[10px] text-slate-400">החזר צפוי</span>
+                                <span class="text-sm font-bold num-font text-slate-200">₪${potentialReturn}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Row: Quick Action Buttons -->
+                    <div class="mt-3 pt-3 border-t border-slate-800/70 flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-[11px] text-slate-400">עדכון תוצאת משחק:</span>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button onclick="setBetStatus('${bet.id}', 'win')" 
+                                class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${bet.status === 'win' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'}">
+                                <i class="fa-solid fa-check"></i> ניצחון
+                            </button>
+                            <button onclick="setBetStatus('${bet.id}', 'loss')" 
+                                class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 ${bet.status === 'loss' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20' : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'}">
+                                <i class="fa-solid fa-xmark"></i> הפסד
+                            </button>
+                            <button onclick="setBetStatus('${bet.id}', 'void')" 
+                                class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${bet.status === 'void' ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+                                החזרה
+                            </button>
+                            <button onclick="setBetStatus('${bet.id}', 'half_win')" 
+                                class="px-2 py-1.5 rounded-lg text-[11px] font-medium transition ${bet.status === 'half_win' ? 'bg-emerald-700 text-white' : 'bg-slate-800/80 text-emerald-300/80 hover:bg-slate-800'}">
+                                ½ זכייה
+                            </button>
+                            <button onclick="setBetStatus('${bet.id}', 'half_loss')" 
+                                class="px-2 py-1.5 rounded-lg text-[11px] font-medium transition ${bet.status === 'half_loss' ? 'bg-rose-800 text-white' : 'bg-slate-800/80 text-rose-300/80 hover:bg-slate-800'}">
+                                ½ הפסד
+                            </button>
+                            ${bet.status !== 'open' ? `
+                                <button onclick="setBetStatus('${bet.id}', 'open')" class="px-2 py-1.5 rounded-lg text-[11px] text-amber-400 hover:bg-amber-500/10 transition" title="החזר למצב פתוח">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Compute & Render Top KPI Statistics
+         */
+        function renderStatistics() {
+            const settled = bets.filter(b => b.status !== 'open');
+            const openCount = bets.length - settled.length;
+
+            let netProfit = 0;
+            let totalStakedSettled = 0;
+            let wins = 0;
+            let losses = 0;
+            let halfWins = 0;
+            let halfLosses = 0;
+            let oddsSum = 0;
+
+            settled.forEach(b => {
+                netProfit += calculateBetNetProfit(b);
+                totalStakedSettled += b.stake;
+                oddsSum += b.odds;
+
+                if (b.status === 'win') wins++;
+                else if (b.status === 'loss') losses++;
+                else if (b.status === 'half_win') halfWins++;
+                else if (b.status === 'half_loss') halfLosses++;
+            });
+
+            // Hit rate excludes voids; half wins count as 0.5 win out of graded bets
+            const gradedCount = wins + losses + halfWins + halfLosses;
+            const effectiveWins = wins + (halfWins * 0.5);
+            const winRate = gradedCount > 0 ? (effectiveWins / gradedCount) * 100 : 0;
+
+            // ROI = Net Profit / Total Staked on settled bets
+            const roi = totalStakedSettled > 0 ? (netProfit / totalStakedSettled) * 100 : 0;
+            const avgOdds = settled.length > 0 ? (oddsSum / settled.length) : 0;
+
+            // Streak Calculation (sorted chronologically by settledAt / createdAt)
+            const chronologicalSettled = [...settled]
+                .filter(b => b.status !== 'void')
+                .sort((a, b) => new Date(a.settledAt || a.createdAt) - new Date(b.settledAt || b.createdAt));
+
+            let currentStreakCount = 0;
+            let currentStreakType = null; // 'win' | 'loss'
+            let bestWinStreak = 0;
+            let tempWinStreak = 0;
+
+            chronologicalSettled.forEach(b => {
+                const isWin = b.status === 'win' || b.status === 'half_win';
+                if (isWin) {
+                    tempWinStreak++;
+                    if (tempWinStreak > bestWinStreak) bestWinStreak = tempWinStreak;
+                    if (currentStreakType === 'win') currentStreakCount++;
+                    else { currentStreakType = 'win'; currentStreakCount = 1; }
+                } else {
+                    tempWinStreak = 0;
+                    if (currentStreakType === 'loss') currentStreakCount++;
+                    else { currentStreakType = 'loss'; currentStreakCount = 1; }
+                }
+            });
+
+            // Update DOM Elements
+            const profitEl = document.getElementById('statNetProfit');
+            profitEl.textContent = `${netProfit >= 0 ? '+' : '-'}₪${Math.abs(netProfit).toFixed(2)}`;
+            profitEl.className = `text-xl sm:text-2xl font-bold num-font ${netProfit > 0 ? 'text-emerald-400' : netProfit < 0 ? 'text-rose-400' : 'text-white'}`;
+
+            document.getElementById('statTotalStaked').textContent = `מחזור השקעות: ₪${totalStakedSettled.toFixed(0)}`;
+
+            const roiEl = document.getElementById('statRoi');
+            roiEl.textContent = `${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%`;
+            roiEl.className = `text-xl sm:text-2xl font-bold num-font ${roi > 0 ? 'text-emerald-400' : roi < 0 ? 'text-rose-400' : 'text-white'}`;
+
+            document.getElementById('statWinRate').textContent = `${winRate.toFixed(1)}%`;
+            document.getElementById('statRecord').textContent = `${wins + halfWins} זכיות / ${losses + halfLosses} הפסדים`;
+
+            document.getElementById('statTotalBets').textContent = settled.length;
+            document.getElementById('statOpenCount').textContent = `${openCount} פתוחים כעת`;
+            document.getElementById('statAvgOdds').textContent = avgOdds.toFixed(2);
+
+            const streakEl = document.getElementById('statStreak');
+            if (currentStreakCount === 0) {
+                streakEl.textContent = '-';
+                streakEl.className = 'text-lg sm:text-xl font-bold text-slate-400';
+            } else if (currentStreakType === 'win') {
+                streakEl.textContent = `${currentStreakCount} זכיות ברצף 🔥`;
+                streakEl.className = 'text-base sm:text-lg font-bold text-emerald-400';
+            } else {
+                streakEl.textContent = `${currentStreakCount} הפסדים ברצף`;
+                streakEl.className = 'text-base sm:text-lg font-bold text-rose-400';
+            }
+            document.getElementById('statBestStreak').textContent = `שיא זכיות ברצף: ${bestWinStreak}`;
+        }
+
+        /**
+         * Render Market & League Breakdown Tables
+         */
+        function renderBreakdowns() {
+            const settled = bets.filter(b => b.status !== 'open');
+
+            const buildGroupStats = (key) => {
+                const map = {};
+                settled.forEach(b => {
+                    const groupName = b[key] || 'אחר';
+                    if (!map[groupName]) {
+                        map[groupName] = { name: groupName, count: 0, graded: 0, effectiveWins: 0, profit: 0 };
+                    }
+                    const g = map[groupName];
+                    g.count++;
+                    g.profit += calculateBetNetProfit(b);
+                    if (b.status !== 'void') {
+                        g.graded++;
+                        if (b.status === 'win') g.effectiveWins += 1;
+                        if (b.status === 'half_win') g.effectiveWins += 0.5;
+                    }
+                });
+                return Object.values(map).sort((a, b) => b.profit - a.profit);
+            };
+
+            const renderTableRows = (items, tbodyId) => {
+                const tbody = document.getElementById(tbodyId);
+                if (items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-500">אין עדיין הימורים סגורים להצגה</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = items.map(item => {
+                    const hitRate = item.graded > 0 ? ((item.effectiveWins / item.graded) * 100).toFixed(0) : 0;
+                    const profitColor = item.profit > 0 ? 'text-emerald-400' : item.profit < 0 ? 'text-rose-400' : 'text-slate-300';
+                    return `
+                        <tr class="hover:bg-slate-800/40 transition">
+                            <td class="py-2.5 font-medium text-slate-200">${escapeHtml(item.name)}</td>
+                            <td class="py-2.5 text-center num-font text-slate-400">${item.count}</td>
+                            <td class="py-2.5 text-center num-font text-slate-300">${hitRate}%</td>
+                            <td class="py-2.5 text-left num-font font-bold ${profitColor}" dir="ltr">
+                                ${item.profit >= 0 ? '+' : '-'}₪${Math.abs(item.profit).toFixed(0)}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            };
+
+            renderTableRows(buildGroupStats('market'), 'marketBreakdownBody');
+            renderTableRows(buildGroupStats('league'), 'leagueBreakdownBody');
+        }
+
+        /**
+         * Render Cumulative Profit Progression Chart
+         */
+        function renderProfitChart() {
+            const settled = [...bets]
+                .filter(b => b.status !== 'open')
+                .sort((a, b) => new Date(a.settledAt || a.createdAt) - new Date(b.settledAt || b.createdAt));
+
+            const emptyState = document.getElementById('chartEmptyState');
+            const canvas = document.getElementById('profitChart');
+
+            if (settled.length === 0) {
+                emptyState.classList.remove('hidden');
+                if (profitChartInstance) {
+                    profitChartInstance.destroy();
+                    profitChartInstance = null;
+                }
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            let cumulative = 0;
+            const labels = ['התחלה'];
+            const dataPoints = [0];
+
+            settled.forEach((b, idx) => {
+                cumulative += calculateBetNetProfit(b);
+                labels.push(`#${idx + 1}`);
+                dataPoints.push(Number(cumulative.toFixed(2)));
+            });
+
+            const isPositive = cumulative >= 0;
+            const lineColor = isPositive ? '#10b981' : '#f43f5e';
+            const fillColor = isPositive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)';
+
+            if (profitChartInstance) {
+                profitChartInstance.destroy();
+            }
+
+            const ctx = canvas.getContext('2d');
+            profitChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'רווח מצטבר (₪)',
+                        data: dataPoints,
+                        borderColor: lineColor,
+                        backgroundColor: fillColor,
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointBackgroundColor: lineColor,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            rtl: true,
+                            backgroundColor: '#1e293b',
+                            titleColor: '#94a3b8',
+                            bodyColor: '#f8fafc',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: (ctx) => ` רווח מצטבר: ₪${ctx.parsed.y}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                            ticks: { color: '#64748b', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(51, 65, 85, 0.3)' },
+                            ticks: {
+                                color: '#64748b',
+                                font: { size: 10 },
+                                callback: (val) => '₪' + val
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Export / Import / Sample Data Utilities
+         */
+        function toggleBackupMenu() {
+            document.getElementById('backupMenu').classList.toggle('hidden');
+        }
+
+        function exportJSON() {
+            const dataStr = JSON.stringify(bets, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bettrack_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toggleBackupMenu();
+            showToast('קובץ הגיבוי הורד למכשיר');
+        }
+
+        function exportCSV() {
+            if (bets.length === 0) {
+                showToast('אין נתונים לייצוא', 'error');
+                return;
+            }
+            const headers = ['תאריך', 'משחק', 'ליגה', 'שוק', 'בחירה', 'יחס', 'השקעה', 'סטטוס', 'רווח/הפסד נקי'];
+            const rows = bets.map(b => [
+                new Date(b.createdAt).toLocaleDateString('he-IL'),
+                `"${b.match.replace(/"/g, '""')}"`,
+                `"${b.league}"`,
+                `"${b.market}"`,
+                `"${b.pick.replace(/"/g, '""')}"`,
+                b.odds,
+                b.stake,
+                b.status,
+                calculateBetNetProfit(b).toFixed(2)
+            ]);
+
+            const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `football_bets_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toggleBackupMenu();
+            showToast('קובץ אקסל (CSV) הורד בהצלחה');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error('Invalid format');
+                    bets = imported;
+                    saveToStorage();
+                    renderAll();
+                    toggleBackupMenu();
+                    showToast(`שוחזרו ${bets.length} הימורים בהצלחה!`);
+                } catch (err) {
+                    showToast('קובץ הגיבוי אינו תקין', 'error');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function loadSampleData() {
+            const now = Date.now();
+            const day = 86400000;
+            const samples = [
+                {
+                    id: 'sample_1',
+                    match: 'ארסנל נגד ליברפול',
+                    league: 'פרמייר ליג',
+                    market: 'קרנות',
+                    pick: 'מעל 10.5 קרנות',
+                    odds: 1.90,
+                    stake: 150,
+                    status: 'win',
+                    createdAt: new Date(now - day * 5).toISOString(),
+                    settledAt: new Date(now - day * 5 + 7200000).toISOString()
+                },
+                {
+                    id: 'sample_2',
+                    match: 'ריאל מדריד נגד ברצלונה',
+                    league: 'לה ליגה',
+                    market: 'שערים Over/Under',
+                    pick: 'מעל 2.5 שערים',
+                    odds: 1.72,
+                    stake: 200,
+                    status: 'win',
+                    createdAt: new Date(now - day * 4).toISOString(),
+                    settledAt: new Date(now - day * 4 + 7200000).toISOString()
+                },
+                {
+                    id: 'sample_3',
+                    match: 'באיירן מינכן נגד דורטמונד',
+                    league: 'בונדסליגה',
+                    market: 'הנדיקאפ אסייתי',
+                    pick: 'באיירן -1.25',
+                    odds: 1.95,
+                    stake: 150,
+                    status: 'half_loss',
+                    createdAt: new Date(now - day * 3).toISOString(),
+                    settledAt: new Date(now - day * 3 + 7200000).toISOString()
+                },
+                {
+                    id: 'sample_4',
+                    match: 'טור שבת אירופאי (3 משחקים)',
+                    league: 'ליגת האלופות',
+                    market: 'טור משולב / Multi',
+                    pick: 'סיטי 1 + אינטר 1 + פריז מעל 1.5',
+                    odds: 3.15,
+                    stake: 100,
+                    status: 'loss',
+                    createdAt: new Date(now - day * 2).toISOString(),
+                    settledAt: new Date(now - day * 2 + 7200000).toISOString()
+                },
+                {
+                    id: 'sample_5',
+                    match: 'מכבי חיפה נגד מכבי תל אביב',
+                    league: 'ליגת העל',
+                    market: '1X2 / תוצאה',
+                    pick: 'תיקו (X)',
+                    odds: 3.30,
+                    stake: 100,
+                    status: 'win',
+                    createdAt: new Date(now - day * 1).toISOString(),
+                    settledAt: new Date(now - day * 1 + 7200000).toISOString()
+                },
+                {
+                    id: 'sample_6',
+                    match: 'מנצ׳סטר סיטי נגד טוטנהאם',
+                    league: 'פרמייר ליג',
+                    market: 'קרנות',
+                    pick: 'מעל 9.5 קרנות',
+                    odds: 1.82,
+                    stake: 150,
+                    status: 'open',
+                    createdAt: new Date(now).toISOString(),
+                    settledAt: null
+                }
+            ];
+
+            bets = [...samples, ...bets];
+            saveToStorage();
+            renderAll();
+            showToast('נטענו 6 הימורי דוגמה להתנסות!');
+        }
+
+        /**
+         * Custom Confirmation Modal Handlers
+         */
+        let pendingAction = null;
+        let pendingTargetId = null;
+
+        function openConfirmModal(action, targetId = null) {
+            pendingAction = action;
+            pendingTargetId = targetId;
+
+            const titleEl = document.getElementById('modalTitle');
+            const descEl = document.getElementById('modalDesc');
+            const btnEl = document.getElementById('modalConfirmBtn');
+
+            if (action === 'clearAll') {
+                titleEl.textContent = 'איפוס ומחיקת כל הנתונים';
+                descEl.textContent = 'האם אתה בטוח שברצונך למחוק את כל ההימורים והסטטיסטיקות? מומלץ לייצא גיבוי לפני המחיקה.';
+                btnEl.textContent = 'מחק הכל';
+            } else {
+                titleEl.textContent = 'מחיקת הימור';
+                descEl.textContent = 'האם להסיר הימור זה מהרשימה ומהחישובים הסטטיסטיים?';
+                btnEl.textContent = 'מחק הימור';
+            }
+
+            btnEl.onclick = executePendingAction;
+            document.getElementById('confirmModal').classList.remove('hidden');
+            document.getElementById('backupMenu').classList.add('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            pendingAction = null;
+            pendingTargetId = null;
+        }
+
+        function executePendingAction() {
+            if (pendingAction === 'clearAll') {
+                bets = [];
+                saveToStorage();
+                renderAll();
+                showToast('כל הנתונים נמחקו');
+            } else if (pendingAction === 'deleteOne' && pendingTargetId) {
+                bets = bets.filter(b => b.id !== pendingTargetId);
+                saveToStorage();
+                renderAll();
+                showToast('ההימור נמחק');
+            }
+            closeConfirmModal();
+        }
+
+        /**
+         * Toast Helper & XSS Escaping
+         */
+        let toastTimeout = null;
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const msg = document.getElementById('toastMessage');
+
+            msg.textContent = message;
+            icon.className = type === 'error'
+                ? 'fa-solid fa-circle-exclamation text-rose-400'
+                : 'fa-solid fa-circle-check text-emerald-400';
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2800);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
